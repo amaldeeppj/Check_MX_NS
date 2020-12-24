@@ -1,0 +1,38 @@
+#!/bin/bash
+
+
+SERVER_IP_LIST=path_to_server_ip_list_file
+DOMAIN_LIST=path_to_domains_list_file
+MX_SERVER=file_path_to_store_domains_using_server_as_mx
+NS_SERVER=file_path_to_store_domains_using_server_as_ns
+NS_EXTERNAL_SERVER=file_path_to_store_domains_using_external_server_as_ns
+
+
+for i in `cat $DOMAIN_LIST`
+do
+        echo "=============================================="
+        echo Domain name: $i
+        if [ -z `dig +short ns $i | head -1` ]
+        then
+                echo "No nameserver"
+        else
+                if [ -n `dig +short mx $i | head -1 |  awk '{print $2}' ` ]
+                then
+                        MX_IP=`dig +short mx $i | head -1 | awk '{print $2}' | xargs dig +short a  | head -1`
+                        NS_IP=`dig +short ns $i | head -1 | xargs dig +short a | head -1`
+                        echo MX IP: $MX_IP
+                        echo NS IP: $NS_IP
+                        if grep -q "$MX_IP" "$SERVER_IP_LIST"
+                        then                                
+                                echo $i >> $MX_SERVER
+                                if grep -q "$NS_IP" "$SERVER_IP_LIST"
+                                then
+                                        echo $i >> $NS_SERVER
+                                else
+                                        echo $i >> $NS_EXTERNAL_SERVER
+                                fi
+                        fi                        
+                fi
+        fi
+        echo "=============================================="
+done
